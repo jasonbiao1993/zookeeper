@@ -42,6 +42,8 @@ import org.slf4j.LoggerFactory;
 /**
  * A collection of utility methods for dealing with file name parsing,
  * low level I/O file operations and marshalling/unmarshalling.
+ *
+ * 工具类，提供持久化所需的api
  */
 public class Util {
 
@@ -130,7 +132,7 @@ public class Util {
     /**
      * Extracts zxid from the file name. The file name should have been created
      * using one of the {@link #makeLogName(long)} or {@link #makeSnapshotName(long)}.
-     *
+     * 从文件名中解析出zxid
      * @param name the file name to parse
      * @param prefix the file name prefix (snapshot or log)
      * @return zxid
@@ -138,8 +140,11 @@ public class Util {
     public static long getZxidFromName(String name, String prefix) {
         long zxid = -1;
         String[] nameParts = name.split("\\.");
+        // 对文件名进行分割
         if (nameParts.length >= 2 && nameParts[0].equals(prefix)) {
+            // 前缀相同
             try {
+                // 转化成长整形
                 zxid = Long.parseLong(nameParts[1], 16);
             } catch (NumberFormatException e) {
             }
@@ -251,6 +256,7 @@ public class Util {
             return new ArrayList<File>(0);
         }
         List<File> filelist = Arrays.asList(files);
+        // 进行排序，Comparator 是关键，根据zxid进行排序
         Collections.sort(filelist, new DataDirFileComparator(prefix, ascending));
         return filelist;
     }

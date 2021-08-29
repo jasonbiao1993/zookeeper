@@ -24,7 +24,7 @@ import java.util.TreeMap;
 
 /**
  * Interface that all the serializers have to implement.
- *
+ * 所有的序列化都需要实现此接口
  */
 public interface OutputArchive {
 
@@ -51,12 +51,36 @@ public interface OutputArchive {
 
     void endRecord(Record r, String tag) throws IOException;
 
+    /**
+     * 开始写 Vector
+     * @param v
+     * @param tag
+     * @throws IOException
+     */
     void startVector(List<?> v, String tag) throws IOException;
 
+    /**
+     * 结束写 Vector
+     * @param v
+     * @param tag
+     * @throws IOException
+     */
     void endVector(List<?> v, String tag) throws IOException;
 
+    /**
+     * 开始写Map
+     * @param v
+     * @param tag
+     * @throws IOException
+     */
     void startMap(TreeMap<?, ?> v, String tag) throws IOException;
 
+    /**
+     * 结束写Map
+     * @param v
+     * @param tag
+     * @throws IOException
+     */
     void endMap(TreeMap<?, ?> v, String tag) throws IOException;
 
 }

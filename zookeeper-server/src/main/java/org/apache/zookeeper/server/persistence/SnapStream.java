@@ -299,14 +299,17 @@ public class SnapStream {
         try (RandomAccessFile raf = new RandomAccessFile(f, "r")) {
             // including the header and the last / bytes
             // the snapshot should be at least 10 bytes
+            // 文件大小至少为10个
             if (raf.length() < 10) {
+                // 无效文件
                 return false;
             }
-
+            // 移动至倒数第5个字节
             raf.seek(raf.length() - 5);
             byte[] bytes = new byte[5];
             int readlen = 0;
             int l;
+            // 读取最后5个字节到 bytes
             while (readlen < 5 && (l = raf.read(bytes, readlen, bytes.length - readlen)) >= 0) {
                 readlen += l;
             }
@@ -317,6 +320,7 @@ public class SnapStream {
             ByteBuffer bb = ByteBuffer.wrap(bytes);
             int len = bb.getInt();
             byte b = bb.get();
+            // 最后一个字符不为"/"，不合法
             if (len != 1 || b != '/') {
                 LOG.info("Invalid snapshot {}. len = {}, byte = {}", f.getName(), len, (b & 0xff));
                 return false;

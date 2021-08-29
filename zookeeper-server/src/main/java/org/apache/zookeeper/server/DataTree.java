@@ -854,19 +854,26 @@ public class DataTree {
     }
 
     public ProcessTxnResult processTxn(TxnHeader header, Record txn, boolean isSubTxn) {
+        // 处理事务结果
         ProcessTxnResult rc = new ProcessTxnResult();
 
         try {
+            // 从事务中解析出相应的属性并保存到 rc
             rc.clientId = header.getClientId();
             rc.cxid = header.getCxid();
             rc.zxid = header.getZxid();
             rc.type = header.getType();
             rc.err = 0;
             rc.multiResult = null;
+
+            // 确定事务类型
             switch (header.getType()) {
             case OpCode.create:
+                // 创建节点
                 CreateTxn createTxn = (CreateTxn) txn;
                 rc.path = createTxn.getPath();
+
+                // 创建节点
                 createNode(
                     createTxn.getPath(),
                     createTxn.getData(),
@@ -926,10 +933,12 @@ public class DataTree {
             case OpCode.deleteContainer:
                 DeleteTxn deleteTxn = (DeleteTxn) txn;
                 rc.path = deleteTxn.getPath();
+                // 删除节点
                 deleteNode(deleteTxn.getPath(), header.getZxid());
                 break;
             case OpCode.reconfig:
             case OpCode.setData:
+                // 设置数据
                 SetDataTxn setDataTxn = (SetDataTxn) txn;
                 rc.path = setDataTxn.getPath();
                 rc.stat = setData(
@@ -940,11 +949,13 @@ public class DataTree {
                     header.getTime());
                 break;
             case OpCode.setACL:
+                // 设置访问权限
                 SetACLTxn setACLTxn = (SetACLTxn) txn;
                 rc.path = setACLTxn.getPath();
                 rc.stat = setACL(setACLTxn.getPath(), setACLTxn.getAcl(), setACLTxn.getVersion());
                 break;
             case OpCode.closeSession:
+                // 关闭会话
                 long sessionId = header.getClientId();
                 if (txn != null) {
                     killSession(sessionId, header.getZxid(),
@@ -963,6 +974,7 @@ public class DataTree {
                 rc.path = checkTxn.getPath();
                 break;
             case OpCode.multi:
+                // 多事务操作
                 MultiTxn multiTxn = (MultiTxn) txn;
                 List<Txn> txns = multiTxn.getTxns();
                 rc.multiResult = new ArrayList<ProcessTxnResult>();
@@ -975,6 +987,7 @@ public class DataTree {
                 }
 
                 boolean post_failed = false;
+                // 循环处理多事务
                 for (Txn subtxn : txns) {
                     ByteBuffer bb = ByteBuffer.wrap(subtxn.getData());
                     Record record = null;
@@ -1056,6 +1069,8 @@ public class DataTree {
          *
          * Note, such failures on DT should be seen only during
          * restore.
+         *
+         * 处理在恢复数据过程中的节点创建操作
          */
         if (header.getType() == OpCode.create && rc.err == Code.NODEEXISTS.intValue()) {
             LOG.debug("Adjusting parent cversion for Txn: {} path: {} err: {}", header.getType(), rc.path, rc.err);
@@ -1103,6 +1118,7 @@ public class DataTree {
              * with the file.
              */
             if (rc.zxid > lastProcessedZxid) {
+                // 事务处理结果中保存的zxid 大于已经被处理的zxid 则重新赋值
                 lastProcessedZxid = rc.zxid;
             }
 

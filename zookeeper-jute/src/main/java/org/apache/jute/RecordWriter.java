@@ -76,6 +76,7 @@ public class RecordWriter {
      * @param r record to be serialized
      */
     public void write(Record r) throws IOException {
+        // 将 Record 写入到 archive
         r.serialize(archive, "");
     }
 }

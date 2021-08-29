@@ -40,15 +40,36 @@ import org.slf4j.LoggerFactory;
  * it is responsible for storing, serializing
  * and deserializing the right snapshot.
  * and provides access to the snapshots.
+ *
+ * 实现 SnapShot 接口，负责存储、序列化、反序列化、访问快照
+ *
  */
 public class FileSnap implements SnapShot {
 
+    /**
+     * snapshot 目录文件
+     */
     File snapDir;
+
     SnapshotInfo lastSnapshotInfo = null;
+    /**
+     * 是否已经关闭
+     */
     private volatile boolean close = false;
+
+    /**
+     * 版本号
+     */
     private static final int VERSION = 2;
+    /**
+     * database id
+     */
     private static final long dbId = -1;
     private static final Logger LOG = LoggerFactory.getLogger(FileSnap.class);
+
+    /**
+     * snapshot 文件魔术 （类似class文件的魔数）
+     */
     public static final int SNAP_MAGIC = ByteBuffer.wrap("ZKSN".getBytes()).getInt();
 
     public static final String SNAPSHOT_FILE_PREFIX = "snapshot";
@@ -73,20 +94,27 @@ public class FileSnap implements SnapShot {
         // we run through 100 snapshots (not all of them)
         // if we cannot get it running within 100 snapshots
         // we should  give up
+        // 查找100个合法的 snapshot 文件
         List<File> snapList = findNValidSnapshots(100);
         if (snapList.size() == 0) {
+            // 无 snapshot 文件，直接返回
             return -1L;
         }
         File snap = null;
         long snapZxid = -1;
+        // 默认不合法
         boolean foundValid = false;
+        // 遍历 shapList
         for (int i = 0, snapListSize = snapList.size(); i < snapListSize; i++) {
             snap = snapList.get(i);
             LOG.info("Reading snapshot {}", snap);
             snapZxid = Util.getZxidFromName(snap.getName(), SNAPSHOT_FILE_PREFIX);
+            // 读取指定的 snapshot 文件
             try (CheckedInputStream snapIS = SnapStream.getInputStream(snap)) {
                 InputArchive ia = BinaryInputArchive.getArchive(snapIS);
+                // 反序列化
                 deserialize(dt, sessions, ia);
+                // 校验检查密封完整性
                 SnapStream.checkSealIntegrity(snapIS, ia);
 
                 // Digest feature was added after the CRC to make it backward
@@ -108,6 +136,8 @@ public class FileSnap implements SnapShot {
         if (!foundValid) {
             throw new IOException("Not able to find valid snapshots in " + snapDir);
         }
+
+        // 从文件中解析出 zxid
         dt.lastProcessedZxid = snapZxid;
         lastSnapshotInfo = new SnapshotInfo(dt.lastProcessedZxid, snap.lastModified() / 1000);
 
@@ -116,6 +146,8 @@ public class FileSnap implements SnapShot {
         if (dt.getDigestFromLoadedSnapshot() != null) {
             dt.compareSnapshotDigests(dt.lastProcessedZxid);
         }
+
+        // 返回 zxid
         return dt.lastProcessedZxid;
     }
 
@@ -128,10 +160,13 @@ public class FileSnap implements SnapShot {
      */
     public void deserialize(DataTree dt, Map<Long, Integer> sessions, InputArchive ia) throws IOException {
         FileHeader header = new FileHeader();
+        // 反序列化至 header
         header.deserialize(ia, "fileheader");
+        // 验证魔数是否相等
         if (header.getMagic() != SNAP_MAGIC) {
             throw new IOException("mismatching magic headers " + header.getMagic() + " !=  " + FileSnap.SNAP_MAGIC);
         }
+        // 反序列化至dt、sessions
         SerializeUtils.deserializeSnapshot(dt, ia, sessions);
     }
 
@@ -160,15 +195,21 @@ public class FileSnap implements SnapShot {
      * @throws IOException
      */
     protected List<File> findNValidSnapshots(int n) throws IOException {
+        // 按照 zxid 对 snapshot 文件，进行降序排序
         List<File> files = Util.sortDataDir(snapDir.listFiles(), SNAPSHOT_FILE_PREFIX, false);
         int count = 0;
         List<File> list = new ArrayList<File>();
+
+        // 遍历 snapshot 文件
         for (File f : files) {
             // we should catch the exceptions
             // from the valid snapshot and continue
             // until we find a valid one
             try {
+                // 校验文件是否合法，在写 snapshot 文件是服务是否宕机
+                // 此时的 snapshot 文件非法； 非法 snapshot 文件也非法
                 if (SnapStream.isValidSnapshot(f)) {
+                    // 合法则添加
                     list.add(f);
                     count++;
                     if (count == n) {
@@ -223,7 +264,10 @@ public class FileSnap implements SnapShot {
         if (header == null) {
             throw new IllegalStateException("Snapshot's not open for writing: uninitialized header");
         }
+        // 序列化 header
         header.serialize(oa, "fileheader");
+
+        // 序列化 dt, session
         SerializeUtils.serializeSnapshot(dt, oa, sessions);
     }
 
@@ -243,6 +287,7 @@ public class FileSnap implements SnapShot {
             try (CheckedOutputStream snapOS = SnapStream.getOutputStream(snapShot, fsync)) {
                 OutputArchive oa = BinaryOutputArchive.getArchive(snapOS);
                 FileHeader header = new FileHeader(SNAP_MAGIC, VERSION, dbId);
+                // 序列化
                 serialize(dt, sessions, oa, header);
                 SnapStream.sealStream(snapOS, oa);
 
@@ -256,6 +301,7 @@ public class FileSnap implements SnapShot {
                     SnapStream.sealStream(snapOS, oa);
                 }
 
+                // 最近的 snapshot 信息
                 lastSnapshotInfo = new SnapshotInfo(
                     Util.getZxidFromName(snapShot.getName(), SNAPSHOT_FILE_PREFIX),
                     snapShot.lastModified() / 1000);

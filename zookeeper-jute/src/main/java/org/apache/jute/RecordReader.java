@@ -77,6 +77,7 @@ public class RecordReader {
      * @param r Record to be deserialized
      */
     public void read(Record r) throws IOException {
+        // 通过观察者模式，将 archive 读入到 Record
         r.deserialize(archive, "");
     }
 

@@ -47,14 +47,25 @@ public class BinaryInputArchive implements InputArchive {
         }
     }
 
+    /**
+     * 表示从二进制数据流中读取数据
+     */
     private DataInput in;
     private int maxBufferSize;
     private int extraMaxBufferSize;
 
+    /**
+     * 静态方法， 用于获取Archive
+     * @param strm 输入流
+     * @return  BinaryInputArchive
+     */
     public static BinaryInputArchive getArchive(InputStream strm) {
         return new BinaryInputArchive(new DataInputStream(strm));
     }
 
+    /**
+     * 内部类，对应BinaryInputArchive索引
+     */
     private static class BinaryIndex implements Index {
         private int nelems;
 

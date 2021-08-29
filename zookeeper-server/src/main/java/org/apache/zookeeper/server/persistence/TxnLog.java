@@ -27,7 +27,7 @@ import org.apache.zookeeper.txn.TxnHeader;
 
 /**
  * Interface for reading transaction logs.
- *
+ * 改接口用于读取事物日志
  */
 public interface TxnLog extends Closeable {
 
@@ -41,6 +41,8 @@ public interface TxnLog extends Closeable {
      * roll the current
      * log being appended to
      * @throws IOException
+     *
+     * 回滚日志
      */
     void rollLog() throws IOException;
     /**
@@ -49,6 +51,8 @@ public interface TxnLog extends Closeable {
      * @param r the transaction itself
      * @return true iff something appended, otw false
      * @throws IOException
+     *
+     * 添加一个请求至事务日志
      */
     boolean append(TxnHeader hdr, Record r) throws IOException;
 
@@ -69,6 +73,8 @@ public interface TxnLog extends Closeable {
      * @return returns an iterator to read the
      * next transaction in the logs.
      * @throws IOException
+     *
+     * 读取事务性日志
      */
     TxnIterator read(long zxid) throws IOException;
 
@@ -76,6 +82,8 @@ public interface TxnLog extends Closeable {
      * the last zxid of the logged transactions.
      * @return the last zxid of the logged transactions.
      * @throws IOException
+     *
+     * 事务操作的最新 zxid
      */
     long getLastLoggedZxid() throws IOException;
 
@@ -84,6 +92,8 @@ public interface TxnLog extends Closeable {
      * leader.
      * @param zxid the zxid to truncate at.
      * @throws IOException
+     *
+     * 清空日志，与Leader保持同步
      */
     boolean truncate(long zxid) throws IOException;
 
@@ -91,6 +101,8 @@ public interface TxnLog extends Closeable {
      * the dbid for this transaction log.
      * @return the dbid for this transaction log.
      * @throws IOException
+     *
+     * 获取数据库id
      */
     long getDbId() throws IOException;
 
@@ -98,6 +110,8 @@ public interface TxnLog extends Closeable {
      * commit the transaction and make sure
      * they are persisted
      * @throws IOException
+     *
+     * 提交事务并进行确认
      */
     void commit() throws IOException;
 
@@ -109,6 +123,8 @@ public interface TxnLog extends Closeable {
 
     /**
      * close the transactions logs
+     *
+     * 关闭事务性日志
      */
     void close() throws IOException;
 
@@ -125,18 +141,21 @@ public interface TxnLog extends Closeable {
     /**
      * an iterating interface for reading
      * transaction logs.
+     * 读取事务日志的迭代器接口
      */
     interface TxnIterator extends Closeable {
 
         /**
          * return the transaction header.
          * @return return the transaction header.
+         * 获取事务头部
          */
         TxnHeader getHeader();
 
         /**
          * return the transaction record.
          * @return return the transaction record.
+         * 获取事务
          */
         Record getTxn();
 
@@ -155,6 +174,7 @@ public interface TxnLog extends Closeable {
          * close files and release the
          * resources
          * @throws IOException
+         * 关闭文件释放资源
          */
         void close() throws IOException;
 

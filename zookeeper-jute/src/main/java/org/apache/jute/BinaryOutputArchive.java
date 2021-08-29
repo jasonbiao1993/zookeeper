@@ -32,6 +32,7 @@ import java.util.TreeMap;
 public class BinaryOutputArchive implements OutputArchive {
     private ByteBuffer bb = ByteBuffer.allocate(1024);
 
+    // 数据输出流
     private DataOutput out;
 
     public static BinaryOutputArchive getArchive(OutputStream strm) {

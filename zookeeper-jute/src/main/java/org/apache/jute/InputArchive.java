@@ -22,7 +22,7 @@ import java.io.IOException;
 
 /**
  * Interface that all the Deserializers have to implement.
- *
+ * 所有反序列化都需要实现这个接口
  */
 public interface InputArchive {
 
@@ -48,12 +48,34 @@ public interface InputArchive {
 
     void endRecord(String tag) throws IOException;
 
+    /**
+     * 开始取向量
+     * @param tag
+     * @return
+     * @throws IOException
+     */
     Index startVector(String tag) throws IOException;
 
+    /**
+     * 结束取向量
+     * @param tag
+     * @throws IOException
+     */
     void endVector(String tag) throws IOException;
 
+    /**
+     * 开始读取Map
+     * @param tag
+     * @return
+     * @throws IOException
+     */
     Index startMap(String tag) throws IOException;
 
+    /**
+     * 结束读取map
+     * @param tag
+     * @throws IOException
+     */
     void endMap(String tag) throws IOException;
 
 }
