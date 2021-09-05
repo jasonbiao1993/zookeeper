@@ -1077,6 +1077,9 @@ public class Leader extends LearnerMaster {
          * FinalRequestProcessor.processRequest MUST process the request
          * synchronously!
          *
+         * 这个请求处理器只是维护 toBeApplied 列表。为了让这个工作接下来必须是一个 FinalRequestProcessor
+         * 并且 FinalRequestProcessor.processRequest 必须同步处理请求！
+         *
          * @param next
          *                a reference to the FinalRequestProcessor
          */

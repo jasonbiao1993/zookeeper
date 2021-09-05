@@ -28,12 +28,24 @@ import org.apache.zookeeper.proto.WatcherEvent;
  *  is able to respond to.  The WatchedEvent includes exactly what happened,
  *  the current state of the ZooKeeper, and the path of the znode that
  *  was involved in the event.
+ *
+ *  对Zookeeper 上发生的变化后的反馈，包含 KeeperState 和 EventType
  */
 @InterfaceAudience.Public
 public class WatchedEvent {
 
+    /**
+     * zookeeper 的状态
+     */
     private final KeeperState keeperState;
+    /**
+     * 事件类型
+     */
     private final EventType eventType;
+
+    /**
+     * 事件所涉及的节点路径
+     */
     private String path;
 
     /**

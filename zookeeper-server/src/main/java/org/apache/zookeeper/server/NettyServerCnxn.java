@@ -54,6 +54,9 @@ import org.apache.zookeeper.server.command.SetTraceMaskCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 基于 netty 的连接具体实现
+ */
 public class NettyServerCnxn extends ServerCnxn {
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyServerCnxn.class);

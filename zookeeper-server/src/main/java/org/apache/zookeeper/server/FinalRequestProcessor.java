@@ -94,6 +94,8 @@ import org.slf4j.LoggerFactory;
  *
  * This RequestProcessor counts on ZooKeeperServer to populate the
  * outstandingRequests member of ZooKeeperServer.
+ *
+ * 处于请求链的末端
  */
 public class FinalRequestProcessor implements RequestProcessor {
 
@@ -101,6 +103,7 @@ public class FinalRequestProcessor implements RequestProcessor {
 
     private final RequestPathMetricsCollector requestPathMetricsCollector;
 
+    // zookeeper 服务器
     ZooKeeperServer zks;
 
     public FinalRequestProcessor(ZooKeeperServer zks) {
@@ -607,6 +610,7 @@ public class FinalRequestProcessor implements RequestProcessor {
 
         try {
             if (path == null || rsp == null) {
+                // 返回响应
                 responseSize = cnxn.sendResponse(hdr, rsp, "response");
             } else {
                 int opCode = request.type;

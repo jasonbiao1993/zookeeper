@@ -53,32 +53,56 @@ import org.slf4j.LoggerFactory;
 /**
  * This class handles communication with clients using NIO. There is one per
  * client, but only one thread doing the communication.
+ *
+ * 基于NIO的具体实现
  */
 public class NIOServerCnxn extends ServerCnxn {
 
     private static final Logger LOG = LoggerFactory.getLogger(NIOServerCnxn.class);
 
+    /**
+     *  ServerCnxn 工厂
+     */
     private final NIOServerCnxnFactory factory;
 
+    /**
+     * 针对面向流的连接字的可选通道
+     */
     private final SocketChannel sock;
 
     private final SelectorThread selectorThread;
 
+    /**
+     * 表示 SelectableChannel 在 Selector 中注册的标记
+     */
     private final SelectionKey sk;
 
+    /**
+     * 初始化标记
+     */
     private boolean initialized;
 
+    /**
+     * 分配四个字节缓冲区
+     */
     private final ByteBuffer lenBuffer = ByteBuffer.allocate(4);
 
     protected ByteBuffer incomingBuffer = lenBuffer;
 
+    /**
+     * 缓存队列
+     */
     private final Queue<ByteBuffer> outgoingBuffers = new LinkedBlockingQueue<ByteBuffer>();
 
+    /**
+     * 会话超时时间
+     */
     private int sessionTimeout;
 
     /**
      * This is the id that uniquely identifies the session of a client. Once
      * this session is no longer active, the ephemeral nodes will go away.
+     * 会话id
      */
     private long sessionId;
 
@@ -100,7 +124,9 @@ public class NIOServerCnxn extends ServerCnxn {
         /* set socket linger to false, so that socket close does not block */
         sock.socket().setSoLinger(false, -1);
         sock.socket().setKeepAlive(clientTcpKeepAlive);
+        // 获取ip地址
         InetAddress addr = ((InetSocketAddress) sock.socket().getRemoteSocketAddress()).getAddress();
+        // 认证信息中添加ip地址
         addAuthInfo(new Id("ip", addr.getHostAddress()));
         this.sessionTimeout = factory.sessionlessCnxnTimeout;
     }
@@ -181,14 +207,20 @@ public class NIOServerCnxn extends ServerCnxn {
         }
 
         if (incomingBuffer.remaining() == 0) { // have we read length bytes?
+            // 翻转缓存区，用于后续读
             incomingBuffer.flip();
+            // 接收包
             packetReceived(4 + incomingBuffer.remaining());
             if (!initialized) {
+                // 读连接请求
                 readConnectRequest();
             } else {
+                // 读请求
                 readRequest();
             }
+            // 清除缓存
             lenBuffer.clear();
+            // 赋值 incomingBuffer ，即清除 incoming 缓存
             incomingBuffer = lenBuffer;
         }
     }
@@ -327,22 +359,30 @@ public class NIOServerCnxn extends ServerCnxn {
 
                 return;
             }
+            // key 可读
             if (k.isReadable()) {
+                // 将内容从 socket 中读到 incomingBuffer
                 int rc = sock.read(incomingBuffer);
                 if (rc < 0) {
+                    // 结束异常流程，无法从客户端读取数据
                     handleFailedRead();
                 }
+
+                // 缓存区已经写满
                 if (incomingBuffer.remaining() == 0) {
                     boolean isPayload;
                     if (incomingBuffer == lenBuffer) { // start of next request
+                        // 翻转缓存区，可读
                         incomingBuffer.flip();
+                        // 读取 lenBuffer的前四个字节，当读取的内容长度为true, 否则返回 false
                         isPayload = readLength(k);
                         incomingBuffer.clear();
                     } else {
                         // continuation
                         isPayload = true;
                     }
-                    if (isPayload) { // not the case for 4letterword
+                    if (isPayload) { // not the case for 4letterword 不为四个字母
+                        // 读取内容
                         readPayload();
                     } else {
                         // four letter words take care
@@ -352,6 +392,7 @@ public class NIOServerCnxn extends ServerCnxn {
                 }
             }
             if (k.isWritable()) {
+                // 处理写请求
                 handleWrite(k);
 
                 if (!initialized && !getReadInterest() && !getWriteInterest()) {
@@ -438,10 +479,12 @@ public class NIOServerCnxn extends ServerCnxn {
         private StringBuffer sb = new StringBuffer();
 
         /**
+         * 是否准备好发送另一块数据
          * Check if we are ready to send another chunk.
          * @param force force sending, even if not a full chunk
          */
         private void checkFlush(boolean force) {
+            // 当强制发送，并将sb大小大于0,或者sb大小大于2048即发送缓存
             if ((force && sb.length() > 0) || sb.length() > 2048) {
                 sendBufferSync(ByteBuffer.wrap(sb.toString().getBytes(UTF_8)));
                 // clear our internal buffer
@@ -454,6 +497,7 @@ public class NIOServerCnxn extends ServerCnxn {
             if (sb == null) {
                 return;
             }
+            // 关闭之前需要强制发送缓存
             checkFlush(true);
             sb = null; // clear out the ref to ensure no reuse
         }

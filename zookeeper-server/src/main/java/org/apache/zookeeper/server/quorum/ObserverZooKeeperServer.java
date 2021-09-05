@@ -42,12 +42,14 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
     /**
      * Enable since request processor for writing txnlog to disk and
      * take periodic snapshot. Default is ON.
+     * 启用同步请求处理器，用于 txnlog 写入磁盘，并定期快照
      */
 
     private boolean syncRequestProcessorEnabled = this.self.getSyncEnabled();
 
     /*
      * Pending sync requests
+     * 待同步的请求
      */ ConcurrentLinkedQueue<Request> pendingSyncs = new ConcurrentLinkedQueue<Request>();
 
     ObserverZooKeeperServer(FileTxnSnapLog logFactory, QuorumPeer self, ZKDatabase zkDb) throws IOException {
@@ -75,8 +77,11 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
     public void commitRequest(Request request) {
         if (syncRequestProcessorEnabled) {
             // Write to txnlog and take periodic snapshot
+            // 写 txnlog 并 定期 snapshot
             syncProcessor.processRequest(request);
         }
+
+        // 提交请求
         commitProcessor.commit(request);
     }
 
@@ -104,6 +109,7 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
          * and do periodic snapshot which may double the memory requirements
          */
         if (syncRequestProcessorEnabled) {
+            // 同步处理器，只用于 txnlog 和 snapshot, 没有下一个处理器
             syncProcessor = new SyncRequestProcessor(this, null);
             syncProcessor.start();
         }
@@ -115,10 +121,14 @@ public class ObserverZooKeeperServer extends LearnerZooKeeperServer {
     public synchronized void sync() {
         if (pendingSyncs.size() == 0) {
             LOG.warn("Not expecting a sync.");
+            // 没有未完成的同步请求
             return;
         }
 
+        // 移除队首元素
         Request r = pendingSyncs.remove();
+
+        // 提交请求
         commitProcessor.commit(r);
     }
 

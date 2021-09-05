@@ -120,6 +120,7 @@ abstract class ClientCnxnSocket {
         if (len < 0 || len > packetLen) {
             throw new IOException("Packet len " + len + " is out of range!");
         }
+        // 从新申请 ByteBuffer
         incomingBuffer = ByteBuffer.allocate(len);
     }
 

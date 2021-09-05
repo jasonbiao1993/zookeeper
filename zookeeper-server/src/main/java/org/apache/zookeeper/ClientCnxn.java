@@ -100,7 +100,7 @@ import org.slf4j.MDC;
  * This class manages the socket i/o for the client. ClientCnxn maintains a list
  * of available servers to connect to and "transparently" switches servers it is
  * connected to as needed.
- *
+ * 此类为客户端管理套接字 io。 ClientCnxn 维护一个可用服务器列表，以根据需要连接并“透明地”切换它所连接的服务器。
  */
 @SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 public class ClientCnxn {
@@ -144,11 +144,13 @@ public class ClientCnxn {
 
     /**
      * These are the packets that have been sent and are waiting for a response.
+     * 这些是已发送并正在等待响应的数据包
      */
     private final Queue<Packet> pendingQueue = new ArrayDeque<>();
 
     /**
      * These are the packets that need to be sent.
+     * 需要发送数据的阻塞队列
      */
     private final LinkedBlockingDeque<Packet> outgoingQueue = new LinkedBlockingDeque<Packet>();
 
@@ -182,8 +184,14 @@ public class ClientCnxn {
 
     final String chrootPath;
 
+    /**
+     * 发送线程
+     */
     final SendThread sendThread;
 
+    /**
+     * 时间处理线程
+     */
     final EventThread eventThread;
 
     /**
@@ -429,6 +437,7 @@ public class ClientCnxn {
         this.sessionPasswd = sessionPasswd;
         this.readOnly = canBeReadOnly;
 
+        // 监视器管理者
         this.watchManager = new ZKWatchManager(
                 clientConfig.getBoolean(ZKClientConfig.DISABLE_AUTO_WATCH_RESET),
                 defaultWatcher);
@@ -436,8 +445,13 @@ public class ClientCnxn {
         this.connectTimeout = sessionTimeout / hostProvider.size();
         this.readTimeout = sessionTimeout * 2 / 3;
 
+        // 发送线程
         this.sendThread = new SendThread(clientCnxnSocket);
+
+        // 事件处理线程
         this.eventThread = new EventThread();
+
+        // 初始化请求超时时间
         initRequestTimeout();
     }
 
@@ -877,6 +891,8 @@ public class ClientCnxn {
             ReplyHeader replyHdr = new ReplyHeader();
 
             replyHdr.deserialize(bbia, "header");
+
+            // 通过 xid 判断处理类型
             switch (replyHdr.getXid()) {
             case PING_XID:
                 LOG.debug("Got ping response for session id: 0x{} after {}ms.",
@@ -913,6 +929,7 @@ public class ClientCnxn {
 
                 WatchedEvent we = new WatchedEvent(event);
                 LOG.debug("Got {} for session id 0x{}", we, Long.toHexString(sessionId));
+                // 进行事件通知
                 eventThread.queueEvent(we);
                 return;
             default:
@@ -1257,6 +1274,7 @@ public class ClientCnxn {
                                              - ((clientCnxnSocket.getIdleSend() > 1000) ? 1000 : 0);
                         //send a ping request either time is due or no packet sent out within MAX_SEND_PING_INTERVAL
                         if (timeToNextPing <= 0 || clientCnxnSocket.getIdleSend() > MAX_SEND_PING_INTERVAL) {
+                            // 发送ping(), 心跳
                             sendPing();
                             clientCnxnSocket.updateLastSend();
                         } else {
@@ -1565,6 +1583,7 @@ public class ClientCnxn {
         WatchRegistration watchRegistration,
         WatchDeregistration watchDeregistration) throws InterruptedException {
         ReplyHeader r = new ReplyHeader();
+        // 添加包到出站队列
         Packet packet = queuePacket(
             h,
             r,
@@ -1576,6 +1595,8 @@ public class ClientCnxn {
             null,
             watchRegistration,
             watchDeregistration);
+
+        // 通过 packet.wait() 方法同步等待，直到调用packet.notify()
         synchronized (packet) {
             if (requestTimeout > 0) {
                 // Wait for request completion with timeout
@@ -1679,6 +1700,8 @@ public class ClientCnxn {
                 outgoingQueue.add(packet);
             }
         }
+
+        // 包添加，唤醒处理
         sendThread.getClientCnxnSocket().packetAdded();
         return packet;
     }

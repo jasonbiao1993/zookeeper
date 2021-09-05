@@ -21,6 +21,7 @@ package org.apache.zookeeper;
 import java.util.Set;
 
 /**
+ * 客户端的Watcher管理者，定义了 materialize
  */
 public interface ClientWatchManager {
 
@@ -35,6 +36,8 @@ public interface ClientWatchManager {
      * @param type event type
      * @param path event path
      * @return may be empty set but must not be null
+     *
+     * 表示事件发生时，返回需要被通知的 Watcher 集合，可能为空集合
      */
     Set<Watcher> materialize(Watcher.Event.KeeperState state, Watcher.Event.EventType type, String path);
 

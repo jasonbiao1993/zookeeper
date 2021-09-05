@@ -52,20 +52,27 @@ import org.slf4j.LoggerFactory;
 /**
  * Interface to a Server connection - represents a connection from a client
  * to the server.
+ *
+ * 与服务器连接的接口 - 表示从客户端到服务器的连接
  */
 public abstract class ServerCnxn implements Stats, Watcher {
 
     // This is just an arbitrary object to represent requests issued by
-    // (aka owned by) this class
+    // (aka owned by) this class 表示有这个类发出的请求
     public static final Object me = new Object();
     private static final Logger LOG = LoggerFactory.getLogger(ServerCnxn.class);
 
+    /**
+     * 认证信息
+     */
     private Set<Id> authInfo = Collections.newSetFromMap(new ConcurrentHashMap<Id, Boolean>());
 
     /**
      * If the client is of old version, we don't send r-o mode info to it.
      * The reason is that if we would, old C client doesn't read it, which
      * results in TCP RST packet, i.e. "connection reset by peer".
+     *
+     * 是否为旧的客服端
      */
     boolean isOldClient = true;
 
@@ -74,6 +81,8 @@ public abstract class ServerCnxn implements Stats, Watcher {
     /** The ZooKeeperServer for this connection. May be null if the server
      * is not currently serving requests (for example if the server is not
      * an active quorum participant.
+     *
+     * Zookeeper 的 sasl 服务器
      */
     final ZooKeeperServer zkServer;
 
@@ -139,6 +148,10 @@ public abstract class ServerCnxn implements Stats, Watcher {
      */
     private volatile boolean invalid = false;
 
+    /**
+     * 获取会话超时时间
+     * @return
+     */
     abstract int getSessionTimeout();
 
     public void incrOutstandingAndCheckThrottle(RequestHeader h) {
@@ -160,6 +173,10 @@ public abstract class ServerCnxn implements Stats, Watcher {
         }
     }
 
+    /**
+     * 关闭会话
+     * @param reason
+     */
     public abstract void close(DisconnectReason reason);
 
     /**
@@ -184,6 +201,8 @@ public abstract class ServerCnxn implements Stats, Watcher {
      * @param opCode The op code appertains to the corresponding request of the response,
      *               used to decide which cache (e.g. read response cache,
      *               list of children response cache, ...) object to look up to when applicable.
+     *
+     * 发送响应
      */
     public abstract int sendResponse(ReplyHeader h, Record r, String tag,
                                       String cacheKey, Stat stat, int opCode) throws IOException;
@@ -261,11 +280,19 @@ public abstract class ServerCnxn implements Stats, Watcher {
         return buffers;
     }
 
-    /* notify the client the session is closing and close/cleanup socket */
+    /* notify the client the session is closing and close/cleanup socket 关闭会话 */
     public abstract void sendCloseSession();
 
+    /**
+     * 处理 Watcher 接口中的方法
+     * @param event 事件
+     */
     public abstract void process(WatchedEvent event);
 
+    /**
+     * 获取会话id
+     * @return
+     */
     public abstract long getSessionId();
 
     abstract void setSessionId(long sessionId);
@@ -283,10 +310,20 @@ public abstract class ServerCnxn implements Stats, Watcher {
         return authInfo.remove(id);
     }
 
+    /**
+     * 设置缓存
+     * @param buffers
+     */
     abstract void sendBuffer(ByteBuffer... buffers);
 
+    /**
+     * 允许接收
+     */
     abstract void enableRecv();
 
+    /**
+     * 禁止接收
+     */
     void disableRecv() {
         disableRecv(true);
     }
@@ -297,6 +334,9 @@ public abstract class ServerCnxn implements Stats, Watcher {
 
     protected ZooKeeperSaslServer zooKeeperSaslServer = null;
 
+    /**
+     * 请求关闭异常类
+     */
     public static class CloseRequestException extends IOException {
 
         private static final long serialVersionUID = -7854505709816442681L;
@@ -312,6 +352,9 @@ public abstract class ServerCnxn implements Stats, Watcher {
 
     }
 
+    /**
+     *  流程结束异常类
+     */
     protected static class EndOfStreamException extends IOException {
 
         private static final long serialVersionUID = -8255690282104294178L;
@@ -352,6 +395,10 @@ public abstract class ServerCnxn implements Stats, Watcher {
         }
     }
 
+    /**
+     * 接收的 packet
+     * @param bytes
+     */
     protected void packetReceived(long bytes) {
         incrPacketsReceived();
         ServerStats serverStats = serverStats();
@@ -361,6 +408,9 @@ public abstract class ServerCnxn implements Stats, Watcher {
         ServerMetrics.getMetrics().BYTES_RECEIVED_COUNT.add(bytes);
     }
 
+    /**
+     * 发送的packet
+     */
     protected void packetSent() {
         incrPacketsSent();
         ServerStats serverStats = serverStats();
@@ -369,6 +419,10 @@ public abstract class ServerCnxn implements Stats, Watcher {
         }
     }
 
+    /**
+     * 获取服务器统计数据
+     * @return
+     */
     protected abstract ServerStats serverStats();
 
     protected final Date established = new Date();
@@ -388,6 +442,9 @@ public abstract class ServerCnxn implements Stats, Watcher {
     protected long totalLatency;
     protected DisconnectReason disconnectReason = DisconnectReason.UNKNOWN;
 
+    /**
+     * 重置统计数据
+     */
     public synchronized void resetStats() {
         disconnectReason = DisconnectReason.RESET_COMMAND;
         packetsReceived.set(0);
@@ -404,14 +461,30 @@ public abstract class ServerCnxn implements Stats, Watcher {
         totalLatency = 0;
     }
 
+    /**
+     * 增加接收的 packet数量
+     * @return
+     */
     protected long incrPacketsReceived() {
         return packetsReceived.incrementAndGet();
     }
 
+    /**
+     * 增加发送的 packet 数量
+     * @return
+     */
     protected long incrPacketsSent() {
         return packetsSent.incrementAndGet();
     }
 
+    /**
+     * 更新响应的统计数据h
+     * @param cxid
+     * @param zxid
+     * @param op
+     * @param start
+     * @param end
+     */
     protected synchronized void updateStatsForResponse(long cxid, long zxid, String op, long start, long end) {
         // don't overwrite with "special" xids - we're interested
         // in the clients last real operation

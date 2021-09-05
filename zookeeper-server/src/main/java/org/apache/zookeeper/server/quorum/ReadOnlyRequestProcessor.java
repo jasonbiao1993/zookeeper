@@ -36,6 +36,10 @@ import org.slf4j.LoggerFactory;
  * processors chain. All it does is, it passes read-only operations (e.g.
  * OpCode.getData, OpCode.exists) through to the next processor, but drops
  * state-changing operations (e.g. OpCode.create, OpCode.setData).
+ *
+ *
+ * ReadOnlyZooKeeperServer 请求处理链的第一个处理器，将只读请求传递给下个处理器，抛弃改变状态的请求。
+ *
  */
 public class ReadOnlyRequestProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
 

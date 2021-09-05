@@ -70,7 +70,10 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         if (sock == null) {
             throw new IOException("Socket is null!");
         }
+
+        // 可读操作
         if (sockKey.isReadable()) {
+            // 读数据
             int rc = sock.read(incomingBuffer);
             if (rc < 0) {
                 throw new EndOfStreamException("Unable to read additional data from server sessionid 0x"
@@ -78,6 +81,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                                                + ", likely server has closed socket");
             }
             if (!incomingBuffer.hasRemaining()) {
+                // 开始读数据
                 incomingBuffer.flip();
                 if (incomingBuffer == lenBuffer) {
                     recvCount.getAndIncrement();
@@ -332,6 +336,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         selector.select(waitTimeOut);
         Set<SelectionKey> selected;
         synchronized (this) {
+            // 获取所有就绪的 SelectionKey
             selected = selector.selectedKeys();
         }
         // Everything below and until we get back to the select is
@@ -341,17 +346,21 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
         for (SelectionKey k : selected) {
             SocketChannel sc = ((SocketChannel) k.channel());
             if ((k.readyOps() & SelectionKey.OP_CONNECT) != 0) {
+                // 连接事件
                 if (sc.finishConnect()) {
                     updateLastSendAndHeard();
                     updateSocketAddresses();
                     sendThread.primeConnection();
                 }
             } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {
+                // 读写事件
                 doIO(pendingQueue, cnxn);
             }
         }
         if (sendThread.getZkState().isConnected()) {
+            // 判断是否存在发送的数据
             if (findSendablePacket(outgoingQueue, sendThread.tunnelAuthInProgress()) != null) {
+                // 存在发送的数据，注册写事件
                 enableWrite();
             }
         }

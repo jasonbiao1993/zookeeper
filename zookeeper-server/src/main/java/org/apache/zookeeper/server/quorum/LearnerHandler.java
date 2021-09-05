@@ -112,6 +112,7 @@ public class LearnerHandler extends ZooKeeperThread {
 
     /**
      * The packets to be sent to the learner
+     * 要发送给 learner 的数据包
      */
     final LinkedBlockingQueue<QuorumPacket> queuedPackets = new LinkedBlockingQueue<QuorumPacket>();
     private final AtomicLong queuedPacketsSize = new AtomicLong();

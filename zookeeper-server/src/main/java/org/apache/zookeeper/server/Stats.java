@@ -22,6 +22,8 @@ import java.util.Date;
 
 /**
  * Statistics on the ServerCnxn
+ *
+ * ServerCnxn 统计数据
  */
 interface Stats {
 

@@ -48,6 +48,8 @@ import org.slf4j.LoggerFactory;
  * There are a few parameters that can be tuned to change its behavior. First,
  * finalizeWait determines the amount of time to wait until deciding upon a leader.
  * This is part of the leader election algorithm.
+ *
+ * 快速 leader 选举算法
  */
 
 public class FastLeaderElection implements Election {
@@ -107,6 +109,9 @@ public class FastLeaderElection implements Election {
      * a given peer has changed its vote, either because it has
      * joined leader election or because it learned of another
      * peer with higher zxid or same zxid and higher server id
+     *
+     * 通知是让其他对等点知道给定对等点已更改其投票的消息，要么是因为它已加入领导选举，
+     * 要么是因为它了解到另一个具有更高 zxid 或相同 zxid 和更高服务器 ID 的对等点
      */
 
     public static class Notification {
@@ -119,27 +124,33 @@ public class FastLeaderElection implements Election {
 
         /*
          * Proposed leader
+         * 被推选的leaderid
          */ long leader;
 
         /*
          * zxid of the proposed leader
+         * 被推选的leader的事务id
          */ long zxid;
 
         /*
          * Epoch
+         * 推选者的状态
          */ long electionEpoch;
 
         /*
          * current state of sender
+         * 推选者状态
          */ QuorumPeer.ServerState state;
 
         /*
          * Address of sender
+         * 推选者id
          */ long sid;
 
         QuorumVerifier qv;
         /*
          * epoch of the proposed leader
+         * 被推选者的选举周期
          */ long peerEpoch;
 
     }
@@ -216,6 +227,7 @@ public class FastLeaderElection implements Election {
         /**
          * Receives messages from instance of QuorumCnxManager on
          * method run(), and processes such messages.
+         * 选票接收器
          */
 
         class WorkerReceiver extends ZooKeeperThread {
@@ -478,6 +490,8 @@ public class FastLeaderElection implements Election {
         /**
          * This worker simply dequeues a message to send and
          * and queues it on the manager's queue.
+         *
+         * 选票发送器
          */
 
         class WorkerSender extends ZooKeeperThread {

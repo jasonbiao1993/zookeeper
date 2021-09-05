@@ -73,6 +73,8 @@ import org.slf4j.LoggerFactory;
  *
  * The current implementation solves the third constraint by simply allowing no
  * read requests to be processed in parallel with write requests.
+ *
+ * 将到来的请求与本地提交的请求进行匹配，这是因为改变系统状态的本地请求的返回结果是到来的请求
  */
 public class CommitProcessor extends ZooKeeperCriticalThread implements RequestProcessor {
 

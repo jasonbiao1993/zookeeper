@@ -27,6 +27,9 @@ import org.apache.zookeeper.server.ServerMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 发送ACK请求的处理器
+ */
 public class SendAckRequestProcessor implements RequestProcessor, Flushable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SendAckRequestProcessor.class);

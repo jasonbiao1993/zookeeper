@@ -51,7 +51,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
     private static final Logger LOG = LoggerFactory.getLogger(FollowerZooKeeperServer.class);
 
     /*
-     * Pending sync requests
+     * Pending sync requests 待同步的请求
      */ ConcurrentLinkedQueue<Request> pendingSyncs;
 
     /**
@@ -68,6 +68,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
 
     @Override
     protected void setupRequestProcessors() {
+        // 构建处理链
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
         commitProcessor = new CommitProcessor(finalProcessor, Long.toString(getServerId()), true, getZooKeeperServerListener());
         commitProcessor.start();
@@ -77,14 +78,20 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         syncProcessor.start();
     }
 
+    /**
+     * 待处理的事务请求
+     */
     LinkedBlockingQueue<Request> pendingTxns = new LinkedBlockingQueue<Request>();
 
     public void logRequest(TxnHeader hdr, Record txn, TxnDigest digest) {
+        // 创建请求
         Request request = new Request(hdr.getClientId(), hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
         request.setTxnDigest(digest);
         if ((request.zxid & 0xffffffffL) != 0) {
             pendingTxns.add(request);
         }
+
+        // 使用 SyncRequestProcessor 处理请求（其会将请求放在队列中，异步请求处理)
         syncProcessor.processRequest(request);
     }
 
@@ -97,30 +104,38 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
     public void commit(long zxid) {
         if (pendingTxns.size() == 0) {
             LOG.warn("Committing " + Long.toHexString(zxid) + " without seeing txn");
+            // 没有正在等待的事务，不做处理
             return;
         }
+        // 获取队首元素的 zxid
         long firstElementZxid = pendingTxns.element().zxid;
         if (firstElementZxid != zxid) {
             LOG.error("Committing zxid 0x" + Long.toHexString(zxid)
                       + " but next pending txn 0x" + Long.toHexString(firstElementZxid));
+            // 如果队首的元素 zxid 不等于需要提交的 zxid，异常退出程序
             ServiceUtils.requestSystemExit(ExitCode.UNMATCHED_TXN_COMMIT.getValue());
         }
         Request request = pendingTxns.remove();
         request.logLatency(ServerMetrics.getMetrics().COMMIT_PROPAGATION_LATENCY);
+        // 提交该请求
         commitProcessor.commit(request);
     }
 
     public synchronized void sync() {
         if (pendingSyncs.size() == 0) {
             LOG.warn("Not expecting a sync.");
+            // 没有需要同步的请求
             return;
         }
 
+        // 从待同步的队列中移除队首请求
         Request r = pendingSyncs.remove();
         if (r instanceof LearnerSyncRequest) {
             LearnerSyncRequest lsr = (LearnerSyncRequest) r;
             lsr.fh.queuePacket(new QuorumPacket(Leader.SYNC, 0, null, null));
         }
+
+        // 提交请求
         commitProcessor.commit(r);
     }
 

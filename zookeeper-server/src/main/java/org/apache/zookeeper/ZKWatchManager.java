@@ -33,18 +33,42 @@ import org.slf4j.LoggerFactory;
  *
  * This class is intended to be packaged-private so that it doesn't serve
  * as part of ZooKeeper client API.
+ *
+ * zookeeper 观察者管理类，继承 ClientWatchManager
  */
 class ZKWatchManager implements ClientWatchManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZKWatchManager.class);
 
+    /**
+     * 数据变化的 Watchers
+     */
     private final Map<String, Set<Watcher>> dataWatches = new HashMap<>();
+    /**
+     * 节点是否存在的 Watchers
+     */
     private final Map<String, Set<Watcher>> existWatches = new HashMap<>();
+    /**
+     * 子节点变化的 Watchers
+     */
     private final Map<String, Set<Watcher>> childWatches = new HashMap<>();
+    /**
+     * 持久 Watchers
+     */
     private final Map<String, Set<Watcher>> persistentWatches = new HashMap<>();
+    /**
+     * 持久循环 Watchers
+     */
     private final Map<String, Set<Watcher>> persistentRecursiveWatches = new HashMap<>();
+
+    /**
+     * 禁止自动监控复位
+     */
     private final boolean disableAutoWatchReset;
 
+    /**
+     * 默认的监控
+     */
     private volatile Watcher defaultWatcher;
 
     ZKWatchManager(boolean disableAutoWatchReset, Watcher defaultWatcher) {
@@ -347,26 +371,32 @@ class ZKWatchManager implements ClientWatchManager {
         Watcher.Event.EventType type,
         String clientPath
     ) {
+        // 新生成的结果 Watchers
         final Set<Watcher> result = new HashSet<>();
 
         switch (type) {
         case None:
+            // 添加默认 Watcher
             if (defaultWatcher != null) {
                 result.add(defaultWatcher);
             }
 
+            // 是否需要清空 提起对 zookeeper.disableAutoWatchReset字段进行配置的值 && zookeeper 状态是否未同步状态
             boolean clear = disableAutoWatchReset && state != Watcher.Event.KeeperState.SyncConnected;
             synchronized (dataWatches) {
+                // 数据监控
                 for (Set<Watcher> ws : dataWatches.values()) {
                     result.addAll(ws);
                 }
                 if (clear) {
+                    // 清除数据监控
                     dataWatches.clear();
                 }
             }
 
             synchronized (existWatches) {
                 for (Set<Watcher> ws : existWatches.values()) {
+                    // 将存在的Watchers 添加到结果
                     result.addAll(ws);
                 }
                 if (clear) {
@@ -398,15 +428,19 @@ class ZKWatchManager implements ClientWatchManager {
             return result;
         case NodeDataChanged:
         case NodeCreated:
+            // 创建节点
             synchronized (dataWatches) {
+                // 移除 clientPatch 对应的 Watcher 后全部添加到结果集
                 addTo(dataWatches.remove(clientPath), result);
             }
             synchronized (existWatches) {
+                // 移除 clientPath 对应的 Watcher 后全部添加到结果集
                 addTo(existWatches.remove(clientPath), result);
             }
             addPersistentWatches(clientPath, result);
             break;
         case NodeChildrenChanged:
+            // 子节点发生改变
             synchronized (childWatches) {
                 addTo(childWatches.remove(clientPath), result);
             }
